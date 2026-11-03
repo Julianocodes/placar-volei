@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Placar de Vôlei</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1321">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Placar">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1321;
+    --panel: #1a2236;
+    --panel-2: #222c44;
+    --text: #f1f4fa;
+    --muted: #8b96ad;
+    --a: #ff7a1a;
+    --b: #2ec4b6;
+    --gold: #ffd166;
+    --danger: #ef476f;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  /* Tela travada: sem scroll, sem "puxar para atualizar", sem zoom no toque duplo */
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    background: radial-gradient(circle at 50% -20%, #22305a 0%, var(--bg) 60%);
+    color: var(--text);
+  }
+  .app {
+    height: 100vh;
+    height: 100dvh;
+    display: flex; flex-direction: column; gap: 10px;
+    padding: calc(10px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right))
+             calc(10px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left));
+    max-width: 900px; margin: 0 auto;
+  }
+
+  button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
+
+  /* Barra de cima */
+  .top-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .info { color: var(--muted); font-size: .9rem; display: flex; gap: 14px; }
+  .info strong { color: var(--gold); }
+  .gear {
+    width: 42px; height: 42px; border-radius: 12px; background: var(--panel);
+    font-size: 1.3rem; display: grid; place-items: center;
+  }
+  .gear:active { transform: scale(.94); }
+
+  /* Quadra: ocupa todo o resto da tela */
+  .court { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .team-card {
+    background: var(--panel); border-radius: var(--radius); padding: 16px 10px;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    gap: 8px; min-height: 0;
+    border-top: 6px solid var(--color);
+  }
+  .team-card.a { --color: var(--a); }
+  .team-card.b { --color: var(--b); }
+  .team-head { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
+  .team-name {
+    background: transparent; border: 2px dashed transparent; color: var(--text);
+    font-family: inherit; font-weight: 700; font-size: 1.2rem; text-align: center;
+    width: 100%; padding: 4px 6px; border-radius: 8px; user-select: text; -webkit-user-select: text;
+  }
+  .team-name:focus { outline: none; border-color: var(--color); background: var(--panel-2); }
+  .sets-badge {
+    font-size: .85rem; color: var(--gold); background: rgba(255,209,102,.12);
+    padding: 4px 10px; border-radius: 999px; font-weight: 600;
+  }
+  .points {
+    font-family: "Bebas Neue", sans-serif; font-size: clamp(6rem, 32vw, 12rem);
+    line-height: .9; color: var(--color);
+  }
+  .points.bump { animation: bump .25s; }
+  @keyframes bump { 50% { transform: scale(1.12); } }
+  .controls { display: flex; gap: 8px; width: 100%; }
+  .controls button {
+    flex: 1; height: 80px; border-radius: 16px; font-size: 2.6rem; font-weight: 700;
+    transition: transform .08s, filter .2s;
+  }
+  .controls button:active { transform: scale(.94); }
+  .minus { background: var(--panel-2); }
+  .plus { background: var(--color); color: #10151f; }
+
+  /* Painel de configurações (abre por cima) */
+  .sheet-bg {
+    position: fixed; inset: 0; background: rgba(5,8,15,.7); display: none; z-index: 5;
+    align-items: flex-end; justify-content: center;
+  }
+  .sheet-bg.show { display: flex; animation: fade .2s; }
+  .sheet {
+    background: var(--panel); width: 100%; max-width: 560px; max-height: 88dvh;
+    border-radius: 24px 24px 0 0; padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+    overflow-y: auto; overscroll-behavior: contain;
+    display: flex; flex-direction: column; gap: 16px;
+    animation: up .25s;
+  }
+  @keyframes up { from { transform: translateY(40px); opacity: 0; } }
+  .sheet-head { display: flex; justify-content: space-between; align-items: center; }
+  .sheet-head h2 { font-size: 1.1rem; }
+  .close { width: 38px; height: 38px; border-radius: 10px; background: var(--panel-2); font-size: 1.1rem; }
+  .section-title { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .row label { font-weight: 600; }
+  .stepper { display: flex; align-items: center; gap: 8px; }
+  .stepper button { width: 40px; height: 40px; border-radius: 10px; background: var(--panel-2); font-size: 1.2rem; font-weight: 700; }
+  .stepper button:disabled { opacity: .35; }
+  .stepper span { min-width: 36px; text-align: center; font-family: "Bebas Neue", sans-serif; font-size: 1.7rem; }
+  .presets { display: flex; gap: 6px; }
+  .presets button { padding: 6px 12px; border-radius: 8px; background: var(--panel-2); color: var(--muted); font-weight: 600; }
+  .presets button.active { background: var(--gold); color: #10151f; }
+  .hint { color: var(--muted); font-size: .8rem; }
+  .names-list { display: flex; flex-direction: column; gap: 8px; }
+  .names-list .name-row { display: flex; align-items: center; gap: 8px; }
+  .names-list input {
+    flex: 1; min-width: 0; background: var(--panel-2); border: 2px solid transparent; color: var(--text);
+    padding: 10px 12px; border-radius: 10px; font-family: inherit; font-size: 1rem;
+    user-select: text; -webkit-user-select: text;
+  }
+  .names-list input:focus { outline: none; border-color: var(--gold); }
+  .tag { font-size: .75rem; padding: 4px 8px; border-radius: 999px; background: #33405f; color: var(--muted); white-space: nowrap; }
+  .tag.playing { background: rgba(46,196,182,.15); color: var(--b); }
+  .btn {
+    background: var(--panel-2); padding: 12px 14px; border-radius: 12px; font-weight: 600; font-size: .95rem;
+  }
+  .btn.danger { color: var(--danger); }
+  .btn.primary { background: var(--gold); color: #10151f; }
+
+  /* Aviso de fim de set */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(5,8,15,.82); display: none;
+    align-items: center; justify-content: center; padding: 20px; z-index: 10;
+  }
+  .overlay.show { display: flex; animation: fade .25s; }
+  @keyframes fade { from { opacity: 0; } }
+  .modal {
+    background: var(--panel); border-radius: 24px; padding: 28px 22px; max-width: 420px; width: 100%;
+    text-align: center; display: flex; flex-direction: column; gap: 12px; border: 2px solid var(--gold);
+  }
+  .modal .ball { font-size: 3rem; }
+  .modal h3 { font-family: "Bebas Neue", sans-serif; font-size: 2.2rem; font-weight: 400; color: var(--gold); letter-spacing: 1px; }
+  .modal p { color: var(--muted); }
+  .modal .swap { background: var(--panel-2); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .modal .swap b { color: var(--text); }
+  .modal .actions { display: flex; gap: 8px; margin-top: 6px; }
+  .modal .actions .btn { flex: 1; }
+
+  /* Telas largas (tablet/PC): cards não ficam gigantes */
+  @media (min-width: 700px) {
+    .points { font-size: 11rem; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <div class="info" id="info"></div>
+    <button class="gear" id="btnSettings" aria-label="Configurações">⚙️</button>
+  </div>
+
+  <section class="court">
+    <div class="team-card a" data-side="0">
+      <div class="team-head">
+        <input class="team-name" aria-label="Nome do time da esquerda">
+        <div class="sets-badge"></div>
+      </div>
+      <div class="points">0</div>
+      <div class="controls">
+        <button class="minus" aria-label="Remover ponto">−</button>
+        <button class="plus" aria-label="Adicionar ponto">+</button>
+      </div>
+    </div>
+    <div class="team-card b" data-side="1">
+      <div class="team-head">
+        <input class="team-name" aria-label="Nome do time da direita">
+        <div class="sets-badge"></div>
+      </div>
+      <div class="points">0</div>
+      <div class="controls">
+        <button class="minus" aria-label="Remover ponto">−</button>
+        <button class="plus" aria-label="Adicionar ponto">+</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Configurações -->
+<div class="sheet-bg" id="sheetBg">
+  <div class="sheet" role="dialog" aria-label="Configurações">
+    <div class="sheet-head">
+      <h2>⚙️ Configurações</h2>
+      <button class="close" id="btnClose" aria-label="Fechar">✕</button>
+    </div>
+
+    <div>
+      <div class="section-title">Set</div>
+      <div class="row">
+        <label>Pontos para fechar</label>
+        <div class="stepper">
+          <button id="targetMinus">−</button>
+          <span id="targetValue">15</span>
+          <button id="targetPlus">+</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <span class="hint">Atalhos:</span>
+        <div class="presets" id="presets">
+          <button data-v="12">12</button>
+          <button data-v="15">15</button>
+          <button data-v="21">21</button>
+          <button data-v="25">25</button>
+        </div>
+      </div>
+      <p class="hint" style="margin-top:8px">Sempre com diferença de 2 pontos (ex.: 14×14 vai até 16×14).</p>
+    </div>
+
+    <div>
+      <div class="section-title">Times</div>
+      <div class="row" style="margin-bottom:10px">
+        <label>Quantidade</label>
+        <div class="stepper">
+          <button id="teamsMinus">−</button>
+          <span id="teamsValue">4</span>
+          <button id="teamsPlus">+</button>
+        </div>
+      </div>
+      <div class="names-list" id="namesList"></div>
+    </div>
+
+    <button class="btn danger" id="btnResetAll">Recomeçar tudo (zera pontos e sets)</button>
+  </div>
+</div>
+
+<!-- Aviso de fim de set -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="ball">🏆</div>
+    <h3 id="winTitle"></h3>
+    <p id="winScore"></p>
+    <div class="swap" id="winSwap"></div>
+    <div class="actions">
+      <button class="btn" id="btnWinUndo">Desfazer</button>
+      <button class="btn primary" id="btnWinOk">Próximo jogo ▶</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const MAX_TEAMS = 4;
+  const MIN_TEAMS = 2;
+  const STORAGE_KEY = "placar-volei-v1";
+
+  // ===== Estado =====
+  // teams: todos os times cadastrados
+  // court: ids dos 2 times em quadra [esquerda, direita]
+  // points: pontos de cada lado [esquerda, direita]
+  // queue: ids dos times esperando, em ordem
+  function defaultState() {
+    return {
+      teams: [1, 2, 3, 4].map(id => ({ id, name: "Time " + id, sets: 0 })),
+      nextId: 5,
+      court: [1, 2],
+      points: [0, 0],
+      queue: [3, 4],
+      target: 15,
+      games: 0
+    };
+  }
+
+  let state = load() || defaultState();
+  let history = [];
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  function snapshot() {
+    history.push(JSON.stringify(state));
+    if (history.length > 50) history.shift();
+  }
+  function undo() {
+    if (!history.length) return;
+    state = JSON.parse(history.pop());
+    hideOverlay();
+    render();
+  }
+
+  const team = id => state.teams.find(t => t.id === id);
+
+  // ===== Regras do jogo =====
+  function isSetOver() {
+    const [a, b] = state.points;
+    if (Math.max(a, b) < state.target) return false;
+    return Math.abs(a - b) >= 2; // sempre diferença de 2
+  }
+
+  function addPoint(side) {
+    snapshot();
+    state.points[side]++;
+    bump(side);
+    if (isSetOver()) finishSet(side);
+    render();
+  }
+
+  function removePoint(side) {
+    if (state.points[side] === 0) return;
+    snapshot();
+    state.points[side]--;
+    render();
+  }
+
+  function finishSet(winnerSide) {
+    const loserSide = winnerSide === 0 ? 1 : 0;
+    const winner = team(state.court[winnerSide]);
+    const loser = team(state.court[loserSide]);
+    const finalScore = [...state.points];
+
+    winner.sets++;
+    state.games++;
+
+    let incoming = null;
+    if (state.queue.length > 0) {
+      // perdedor vai pro fim da fila, o primeiro da fila entra no lugar dele
+      state.queue.push(loser.id);
+      incoming = team(state.queue.shift());
+      state.court[loserSide] = incoming.id;
+    }
+    state.points = [0, 0];
+
+    showOverlay(winner, loser, incoming, finalScore, winnerSide);
+  }
+
+  function setTeamCount(n) {
+    if (n < MIN_TEAMS || n > MAX_TEAMS || n === state.teams.length) return;
+    snapshot();
+    if (n > state.teams.length) {
+      const id = state.nextId++;
+      state.teams.push({ id, name: "Time " + id, sets: 0 });
+      state.queue.push(id);
+    } else {
+      const removed = state.teams.pop();
+      state.queue = state.queue.filter(id => id !== removed.id);
+      const side = state.court.indexOf(removed.id);
+      if (side !== -1) {
+        state.court[side] = state.queue.shift();
+        state.points = [0, 0];
+      }
+    }
+    render();
+  }
+
+  function rename(id, name) {
+    const t = team(id);
+    t.name = name.trim() || "Time " + id;
+    save();
+    renderTexts();
+  }
+
+  function setTarget(v) {
+    v = Math.max(1, Math.min(99, v));
+    if (v === state.target) return;
+    snapshot();
+    state.target = v;
+    if (isSetOver()) finishSet(state.points[0] > state.points[1] ? 0 : 1);
+    render();
+  }
+
+  // ===== Aviso de fim de set =====
+  const overlay = document.getElementById("overlay");
+  function showOverlay(winner, loser, incoming, score, winnerSide) {
+    closeSettings();
+    document.getElementById("winTitle").textContent = winner.name + " venceu o set!";
+    const s = winnerSide === 0 ? score : [score[1], score[0]];
+    document.getElementById("winScore").textContent =
+      `${s[0]} × ${s[1]} · ${winner.name} agora tem ${setsLabel(winner.sets)}`;
+    const swap = document.getElementById("winSwap");
+    swap.innerHTML = "";
+    if (incoming) {
+      swap.append(line("⬅️ Sai: ", loser.name, ` (${setsLabel(loser.sets)})`));
+      swap.append(line("➡️ Entra: ", incoming.name, ` (${setsLabel(incoming.sets)})`));
+    } else {
+      swap.append(line("", "Os mesmos dois", " jogam de novo."));
+    }
+    overlay.classList.add("show");
+  }
+  function line(prefix, bold, suffix) {
+    const div = document.createElement("div");
+    const b = document.createElement("b");
+    b.textContent = bold;
+    div.append(prefix, b, suffix);
+    return div;
+  }
+  function hideOverlay() { overlay.classList.remove("show"); }
+
+  // ===== Configurações =====
+  const sheetBg = document.getElementById("sheetBg");
+  function openSettings() { renderTexts(); sheetBg.classList.add("show"); }
+  function closeSettings() {
+    if (document.activeElement) document.activeElement.blur();
+    sheetBg.classList.remove("show");
+  }
+
+  // ===== Renderização =====
+  const cards = document.querySelectorAll(".team-card");
+
+  function bump(side) {
+    const el = cards[side].querySelector(".points");
+    el.classList.remove("bump");
+    void el.offsetWidth;
+    el.classList.add("bump");
+  }
+
+  function setsLabel(n) { return n + (n === 1 ? " set" : " sets"); }
+
+  function renderTexts() {
+    cards.forEach((card, side) => {
+      const t = team(state.court[side]);
+      const input = card.querySelector(".team-name");
+      if (document.activeElement !== input) input.value = t.name;
+      card.querySelector(".sets-badge").textContent = "🏅 " + setsLabel(t.sets);
+    });
+
+    // nomes + sets de todos os times (no painel de configurações)
+    const names = document.getElementById("namesList");
+    state.teams.forEach((t, i) => {
+      let row = names.children[i];
+      if (!row) {
+        row = document.createElement("div");
+        row.className = "name-row";
+        const input = document.createElement("input");
+        input.maxLength = 24;
+        input.addEventListener("input", e => rename(Number(e.target.dataset.id), e.target.value));
+        input.addEventListener("blur", renderTexts);
+        input.addEventListener("keydown", e => { if (e.key === "Enter") input.blur(); });
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        row.append(input, tag);
+        names.append(row);
+      }
+      const input = row.querySelector("input");
+      const tag = row.querySelector(".tag");
+      input.dataset.id = t.id;
+      input.placeholder = "Time " + t.id;
+      if (document.activeElement !== input) input.value = t.name;
+      const playing = state.court.includes(t.id);
+      tag.className = "tag" + (playing ? " playing" : "");
+      tag.textContent = setsLabel(t.sets) + (playing ? " · em quadra" : "");
+    });
+    while (names.children.length > state.teams.length) names.lastChild.remove();
+  }
+
+  function render() {
+    cards.forEach((card, side) => {
+      card.querySelector(".points").textContent = state.points[side];
+    });
+    renderTexts();
+
+    document.getElementById("targetValue").textContent = state.target;
+    document.querySelectorAll("#presets button").forEach(b =>
+      b.classList.toggle("active", Number(b.dataset.v) === state.target));
+    document.getElementById("teamsValue").textContent = state.teams.length;
+    document.getElementById("teamsMinus").disabled = state.teams.length <= MIN_TEAMS;
+    document.getElementById("teamsPlus").disabled = state.teams.length >= MAX_TEAMS;
+
+    const info = document.getElementById("info");
+    info.innerHTML = "";
+    [["Set: ", state.target + " pts"], ["Jogos: ", String(state.games)]].forEach(([label, value]) => {
+      const span = document.createElement("span");
+      const strong = document.createElement("strong");
+      strong.textContent = value;
+      span.append(label, strong);
+      info.append(span);
+    });
+
+    save();
+  }
+
+  // ===== Eventos =====
+  cards.forEach((card, side) => {
+    card.querySelector(".plus").addEventListener("click", () => addPoint(side));
+    card.querySelector(".minus").addEventListener("click", () => removePoint(side));
+    const input = card.querySelector(".team-name");
+    input.maxLength = 24;
+    input.addEventListener("input", e => rename(state.court[side], e.target.value));
+    input.addEventListener("blur", renderTexts);
+    input.addEventListener("keydown", e => { if (e.key === "Enter") input.blur(); });
+  });
+
+  document.getElementById("btnSettings").addEventListener("click", openSettings);
+  document.getElementById("btnClose").addEventListener("click", closeSettings);
+  sheetBg.addEventListener("click", e => { if (e.target === sheetBg) closeSettings(); });
+
+  document.getElementById("targetMinus").addEventListener("click", () => setTarget(state.target - 1));
+  document.getElementById("targetPlus").addEventListener("click", () => setTarget(state.target + 1));
+  document.querySelectorAll("#presets button").forEach(b =>
+    b.addEventListener("click", () => setTarget(Number(b.dataset.v))));
+  document.getElementById("teamsMinus").addEventListener("click", () => setTeamCount(state.teams.length - 1));
+  document.getElementById("teamsPlus").addEventListener("click", () => setTeamCount(state.teams.length + 1));
+
+  document.getElementById("btnWinUndo").addEventListener("click", undo);
+  document.getElementById("btnWinOk").addEventListener("click", hideOverlay);
+
+  // confirmação em dois toques
+  const resetAllBtn = document.getElementById("btnResetAll");
+  const resetLabel = resetAllBtn.textContent;
+  let resetArmed = null;
+  resetAllBtn.addEventListener("click", () => {
+    if (!resetArmed) {
+      resetAllBtn.textContent = "Toque de novo para confirmar";
+      resetArmed = setTimeout(() => { resetAllBtn.textContent = resetLabel; resetArmed = null; }, 3000);
+      return;
+    }
+    clearTimeout(resetArmed);
+    resetArmed = null;
+    resetAllBtn.textContent = resetLabel;
+    snapshot();
+    const ids = state.teams.map(t => t.id);
+    state = {
+      teams: state.teams.map(t => ({ ...t, sets: 0 })),
+      nextId: state.nextId,
+      court: [ids[0], ids[1]],
+      points: [0, 0],
+      queue: ids.slice(2),
+      target: state.target,
+      games: 0
+    };
+    closeSettings();
+    render();
+  });
+
+  render();
+
+  // ===== PWA: funciona offline depois de instalado =====
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+</script>
+</body>
+</html>
