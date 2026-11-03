@@ -67,8 +67,7 @@
   }
   .chip .chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 9em; }
   .chip strong { color: var(--gold); font-size: 1rem; }
-  .chip.a { border-color: var(--a); color: var(--text); }
-  .chip.b { border-color: var(--b); color: var(--text); }
+  .chip.playing { color: var(--text); }
   .gear {
     width: 42px; height: 42px; border-radius: 12px; background: var(--panel);
     font-size: 1.3rem; display: grid; place-items: center;
@@ -81,7 +80,7 @@
     background: var(--panel); border-radius: var(--radius); padding: 16px 10px;
     display: flex; flex-direction: column; align-items: center; justify-content: space-between;
     gap: 8px; min-height: 0;
-    border-top: 6px solid var(--color);
+    border-top: 10px solid var(--color);
   }
   .team-card.a { --color: var(--a); }
   .team-card.b { --color: var(--b); }
@@ -97,7 +96,7 @@
     padding: 4px 10px; border-radius: 999px; font-weight: 600;
   }
   .points {
-    font-family: "Bebas Neue", sans-serif; font-size: clamp(6rem, 32vw, 12rem);
+    font-family: "Bebas Neue", sans-serif; font-size: clamp(5rem, 26vw, 9rem);
     line-height: .9; color: var(--color);
   }
   .points.bump { animation: bump .25s; }
@@ -180,18 +179,18 @@
     .top-bar .gear { width: 36px; height: 36px; font-size: 1.1rem; }
     .info { font-size: .8rem; }
     .court { gap: 8px; }
-    .team-card { padding: 8px 10px; gap: 4px; border-top-width: 4px; }
+    .team-card { padding: 8px 10px; gap: 4px; border-top-width: 9px; }
     .team-head { flex-direction: row; justify-content: center; gap: 8px; }
     .team-name { font-size: 1.05rem; padding: 2px 6px; }
     .chip { padding: 2px 10px; font-size: .8rem; }
-    .points { font-size: clamp(4rem, 42vh, 11rem); }
+    .points { font-size: clamp(3.5rem, 30vh, 8rem); }
     .controls button { height: 56px; font-size: 2.2rem; }
     .sheet { max-height: 92dvh; border-radius: 20px 20px 0 0; }
   }
 
   /* Telas largas (tablet/PC): cards não ficam gigantes */
   @media (min-width: 700px) {
-    .points { font-size: 11rem; }
+    .points { font-size: 9rem; }
   }
 </style>
 </head>
@@ -291,6 +290,8 @@
   const MAX_TEAMS = 4;
   const MIN_TEAMS = 2;
   const STORAGE_KEY = "placar-volei-v1";
+  // uma cor para cada time: Time 1, Time 2, Time 3, Time 4
+  const TEAM_COLORS = ["#ff7a1a", "#2ec4b6", "#9b6bff", "#ff4f8b"];
 
   // ===== Estado =====
   // teams: todos os times cadastrados
@@ -333,6 +334,7 @@
   }
 
   const team = id => state.teams.find(t => t.id === id);
+  const colorOf = id => TEAM_COLORS[state.teams.findIndex(t => t.id === id) % TEAM_COLORS.length];
 
   // ===== Regras do jogo =====
   function isSetOver() {
@@ -370,8 +372,11 @@
       // perdedor vai pro fim da fila, o primeiro da fila entra no lugar dele
       state.queue.push(loser.id);
       incoming = team(state.queue.shift());
-      state.court[loserSide] = incoming.id;
+      state.court = [winner.id, incoming.id];
+    } else {
+      state.court = [winner.id, loser.id];
     }
+    // vencedor sempre do lado esquerdo
     state.points = [0, 0];
 
     showOverlay(winner, loser, incoming, finalScore, winnerSide);
@@ -462,6 +467,7 @@
   function renderTexts() {
     cards.forEach((card, side) => {
       const t = team(state.court[side]);
+      card.style.setProperty("--color", colorOf(t.id));
       const input = card.querySelector(".team-name");
       if (document.activeElement !== input) input.value = t.name;
     });
@@ -469,10 +475,12 @@
     // sets de todos os times na barra de cima
     const info = document.getElementById("info");
     info.innerHTML = "";
-    state.teams.forEach(t => {
+    const ordem = [...state.court, ...state.queue].map(team);
+    ordem.forEach(t => {
       const side = state.court.indexOf(t.id);
       const chip = document.createElement("div");
-      chip.className = "chip" + (side === 0 ? " a" : side === 1 ? " b" : "");
+      chip.className = "chip" + (side !== -1 ? " playing" : "");
+      if (side !== -1) chip.style.borderColor = colorOf(t.id);
       const name = document.createElement("span");
       name.className = "chip-name";
       name.textContent = t.name;
@@ -581,6 +589,17 @@
   });
 
   render();
+
+  // ===== Força o app a ficar deitado (mesmo com a rotação automática desligada) =====
+  function lockLandscape() {
+    try {
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock("landscape").catch(() => {});
+      }
+    } catch (e) {}
+  }
+  lockLandscape();
+  document.addEventListener("click", lockLandscape, { once: true });
 
   // ===== PWA: funciona offline depois de instalado =====
   if ("serviceWorker" in navigator && location.protocol === "https:") {
