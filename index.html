@@ -166,6 +166,19 @@
   .modal .actions { display: flex; gap: 8px; margin-top: 6px; }
   .modal .actions .btn { flex: 1; }
 
+  /* Aviso quando o celular está deitado */
+  .rotate {
+    position: fixed; inset: 0; z-index: 20; background: var(--bg);
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; text-align: center; padding: 20px;
+  }
+  .rotate .icon { font-size: 3.5rem; animation: girar 1.6s ease-in-out infinite; }
+  @keyframes girar { 50% { transform: rotate(-90deg); } }
+  .rotate p { color: var(--muted); }
+  @media (orientation: landscape) and (max-height: 520px) {
+    .rotate { display: flex; }
+  }
+
   /* Telas largas (tablet/PC): cards não ficam gigantes */
   @media (min-width: 700px) {
     .points { font-size: 11rem; }
@@ -203,6 +216,13 @@
       </div>
     </div>
   </section>
+</div>
+
+<!-- Aparece só se o celular estiver deitado -->
+<div class="rotate">
+  <div class="icon">📱</div>
+  <h3>Gire o celular</h3>
+  <p>O placar funciona com o celular em pé.</p>
 </div>
 
 <!-- Configurações -->
@@ -555,6 +575,17 @@
   });
 
   render();
+
+  // ===== Trava a tela em pé (funciona no app instalado do Android) =====
+  function lockPortrait() {
+    try {
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock("portrait-primary").catch(() => {});
+      }
+    } catch (e) {}
+  }
+  lockPortrait();
+  document.addEventListener("click", lockPortrait, { once: true });
 
   // ===== PWA: funciona offline depois de instalado =====
   if ("serviceWorker" in navigator && location.protocol === "https:") {
