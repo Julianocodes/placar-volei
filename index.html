@@ -201,6 +201,69 @@
   .btn.danger { color: var(--danger); }
   .btn.primary { background: var(--gold); color: #10151f; }
 
+  /* Botão de sorteio na barra de cima */
+  .draw-open {
+    justify-self: start; background: var(--panel); border-radius: 12px; padding: 0 14px; height: 42px;
+    font-weight: 700; font-size: .95rem;
+  }
+  .draw-open:active { transform: scale(.96); }
+
+  /* Jogadores do time no card */
+  .roster {
+    font-size: .8rem; color: var(--muted); text-align: center; width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-height: 1em;
+  }
+
+  /* Tela de sorteio */
+  .draw-bg {
+    position: fixed; inset: 0; z-index: 7; display: none; flex-direction: column; gap: 10px;
+    background: var(--bg);
+    padding: calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
+             calc(10px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+  }
+  .draw-bg.show { display: flex; animation: fade .2s; }
+  .draw-head { display: flex; align-items: center; justify-content: space-between; }
+  .draw-head h2 { font-size: 1.1rem; color: var(--gold); }
+  .draw-actions { display: flex; gap: 8px; }
+  .opt { background: var(--panel); color: var(--muted); border-radius: 999px; padding: 0 14px; height: 38px; font-weight: 600; }
+  .draw-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 10px; }
+  .dpanel { background: var(--panel); border-radius: 14px; padding: 10px; overflow-y: auto; overscroll-behavior: contain; }
+  .dlb { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); margin-bottom: 8px; }
+  .dadd { display: flex; gap: 6px; margin-bottom: 8px; }
+  .dadd input {
+    flex: 1; min-width: 0; height: 40px; background: var(--panel-2); border: 2px solid transparent; color: var(--text);
+    border-radius: 10px; padding: 0 12px; font-family: inherit; font-size: 1rem; user-select: text; -webkit-user-select: text;
+  }
+  .dadd input:focus { outline: none; border-color: var(--gold); }
+  .dadd button { background: var(--gold); color: #10151f; border-radius: 10px; padding: 0 14px; font-weight: 700; white-space: nowrap; }
+  .dlist { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+  .dp { display: flex; align-items: center; gap: 6px; background: var(--panel-2); border-radius: 10px; padding: 8px 6px 8px 10px; font-size: .9rem; min-width: 0; }
+  .dp .n { color: var(--muted); font-size: .75rem; min-width: 16px; }
+  .dp .nm, .dl .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dp .x { background: transparent; color: var(--muted); width: 26px; height: 26px; border-radius: 8px; font-size: 1.1rem; }
+  .dlvl { display: flex; flex-direction: column; gap: 6px; }
+  .dl { display: flex; align-items: center; gap: 8px; background: var(--panel-2); border-radius: 10px; padding: 5px 6px 5px 12px; font-size: .95rem; }
+  .seg { display: flex; gap: 3px; background: #141b2c; border-radius: 10px; padding: 3px; }
+  .seg button { background: transparent; padding: 7px 10px; border-radius: 8px; font-size: .8rem; color: var(--muted); border: 1.5px solid transparent; }
+  .seg button.l1.on { background: #3d4b6b; color: #fff; border-color: #8b96ad; }
+  .seg button.l2.on { background: var(--b); color: #04342c; border-color: #9ff0e6; font-weight: 700; }
+  .seg button.l3.on { background: var(--gold); color: #3b2a00; border-color: #fff1c2; font-weight: 700; }
+  .drow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-weight: 600; }
+  .dgo { width: 100%; background: var(--b); color: #04342c; border-radius: 12px; padding: 12px 0; font-weight: 700; font-size: 1rem; }
+  .dgo:active, .dadd button:active { transform: scale(.97); }
+  .dempty { color: var(--muted); font-size: .85rem; text-align: center; padding: 18px 4px; }
+  .dteams { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px; margin-top: 10px; }
+  .dteam { background: var(--panel-2); border-radius: 10px; border-top: 5px solid var(--c); padding: 7px 8px; }
+  .dteam h4 { font-size: .85rem; color: var(--c); margin-bottom: 4px; }
+  .dteam ol { padding-left: 18px; font-size: .85rem; line-height: 1.6; }
+  .dteam li { animation: entra .35s both; }
+  @keyframes entra { from { opacity: 0; transform: translateY(6px); } }
+  .dbal { display: none; font-size: .7rem; color: var(--gold); margin-top: 4px; }
+  .draw-bg.org .dbal { display: block; }
+  .dleft { font-size: .8rem; color: var(--muted); margin-top: 6px; }
+  .duse { width: 100%; margin-top: 8px; background: var(--gold); color: #10151f; border-radius: 12px; padding: 11px 0; font-weight: 700; }
+  .dagain { width: 100%; margin-top: 6px; background: var(--panel-2); border-radius: 12px; padding: 10px 0; font-weight: 600; }
+
   /* Pódio clicável */
   .podium { cursor: pointer; }
   .podium:active { transform: scale(.97); }
@@ -278,7 +341,7 @@
     .info { font-size: .8rem; }
     .court { gap: 8px; }
     .team-card { padding: 8px 10px; gap: 4px; border-top-width: 9px; }
-    .team-head { flex-direction: row; justify-content: center; gap: 8px; }
+    .team-head { flex-direction: column; gap: 2px; }
     .team-name { font-size: 1.4rem; padding: 2px 6px; }
     .chip { padding: 2px 10px; font-size: .8rem; }
     .points { font-size: clamp(3.5rem, 30vh, 8rem); }
@@ -299,7 +362,7 @@
 <body>
 <div class="app">
   <div class="top-bar">
-    <div></div>
+    <button class="draw-open" id="btnDraw" aria-label="Sortear times">🎲 Sortear</button>
     <div class="timer-box">
       <div class="timer parado" id="timer">00:00</div>
       <button class="play" id="btnPlay" aria-label="Iniciar cronômetro">▶</button>
@@ -311,6 +374,7 @@
     <div class="team-card a" data-side="0">
       <div class="team-head">
         <input class="team-name" aria-label="Nome do time da esquerda">
+        <div class="roster"></div>
       </div>
       <div class="points">0</div>
       <div class="controls">
@@ -326,6 +390,7 @@
     <div class="team-card b" data-side="1">
       <div class="team-head">
         <input class="team-name" aria-label="Nome do time da direita">
+        <div class="roster"></div>
       </div>
       <div class="points">0</div>
       <div class="controls">
@@ -366,6 +431,45 @@
     <div class="names-list" id="namesList"></div>
 
     <button class="btn danger" id="btnResetAll">Recomeçar tudo (zera pontos e sets)</button>
+  </div>
+</div>
+
+<!-- Sorteio de times -->
+<div class="draw-bg" id="drawBg">
+  <div class="draw-head">
+    <h2>🎲 Sorteio de times</h2>
+    <div class="draw-actions">
+      <button class="opt" id="btnOpt">⋯ Opções</button>
+      <button class="close" id="btnDrawClose" aria-label="Fechar">✕</button>
+    </div>
+  </div>
+  <div class="draw-grid">
+    <div class="dpanel">
+      <div id="drawNormal">
+        <div class="dlb"><span>Jogadores</span><span id="dCount"></span></div>
+        <div class="dadd">
+          <input id="dName" placeholder="Nome do jogador" maxlength="16">
+          <button id="dAdd">+ Adicionar</button>
+        </div>
+        <div class="dlist" id="dList"></div>
+      </div>
+      <div id="drawOrg" hidden>
+        <div class="dlb"><span>Nível de cada jogador</span></div>
+        <div class="dlvl" id="dLvl"></div>
+      </div>
+    </div>
+    <div class="dpanel">
+      <div class="drow">
+        <label>Jogadores por time</label>
+        <div class="stepper">
+          <button id="perMinus">−</button>
+          <span id="perValue">5</span>
+          <button id="perPlus">+</button>
+        </div>
+      </div>
+      <button class="dgo" id="dGo">🔀 Sortear times</button>
+      <div id="dRes"><div class="dempty">Os times aparecem aqui.</div></div>
+    </div>
   </div>
 </div>
 
@@ -550,6 +654,191 @@
   }
   function hideOverlay() { overlay.classList.remove("show"); }
 
+  // ===== Sorteio de times =====
+  // players: [{ name, level }]  level: 1 iniciante, 2 médio, 3 forte (só aparece em "Opções")
+  if (!state.players) state.players = [];
+  if (!state.perTeam) state.perTeam = 5;
+  const drawBg = document.getElementById("drawBg");
+  const NIVEIS = ["Iniciante", "Médio", "Forte"];
+  let orgMode = false;
+  let lastDraw = null;
+
+  const shuffle = arr => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  function renderDraw() {
+    document.getElementById("dCount").textContent = state.players.length + " na lista";
+    document.getElementById("perValue").textContent = state.perTeam;
+
+    const list = document.getElementById("dList");
+    list.innerHTML = "";
+    state.players.forEach((p, i) => {
+      const row = document.createElement("div");
+      row.className = "dp";
+      const n = document.createElement("span");
+      n.className = "n";
+      n.textContent = i + 1;
+      const nm = document.createElement("span");
+      nm.className = "nm";
+      nm.textContent = p.name;
+      const x = document.createElement("button");
+      x.className = "x";
+      x.textContent = "×";
+      x.setAttribute("aria-label", "Remover " + p.name);
+      x.addEventListener("click", () => { state.players.splice(i, 1); save(); renderDraw(); });
+      row.append(n, nm, x);
+      list.append(row);
+    });
+
+    const lvl = document.getElementById("dLvl");
+    lvl.innerHTML = "";
+    state.players.forEach(p => {
+      const row = document.createElement("div");
+      row.className = "dl";
+      const nm = document.createElement("span");
+      nm.className = "nm";
+      nm.textContent = p.name;
+      const seg = document.createElement("div");
+      seg.className = "seg";
+      NIVEIS.forEach((txt, k) => {
+        const b = document.createElement("button");
+        b.textContent = txt;
+        b.className = "l" + (k + 1) + (p.level === k + 1 ? " on" : "");
+        b.addEventListener("click", () => { p.level = k + 1; save(); renderDraw(); });
+        seg.append(b);
+      });
+      row.append(nm, seg);
+      lvl.append(row);
+    });
+  }
+
+  function addPlayer() {
+    const input = document.getElementById("dName");
+    const name = input.value.trim();
+    if (!name) return;
+    state.players.push({ name, level: 2 }); // entra como médio
+    input.value = "";
+    save();
+    renderDraw();
+    input.focus();
+  }
+
+  // distribui por nível em rodadas: fortes, depois médios, depois iniciantes
+  function sortearTimes() {
+    const per = state.perTeam;
+    const n = Math.min(MAX_TEAMS, Math.floor(state.players.length / per));
+    const res = document.getElementById("dRes");
+    res.innerHTML = "";
+    if (n < 2) {
+      res.innerHTML = '<div class="dempty"></div>';
+      res.firstChild.textContent = "Precisa de pelo menos " + per * 2 + " jogadores.";
+      lastDraw = null;
+      return;
+    }
+    const times = Array.from({ length: n }, () => []);
+    const sobra = [];
+    const total = t => t.reduce((s, p) => s + p.level, 0);
+    const qtd = (t, l) => t.filter(p => p.level === l).length;
+    [3, 2, 1].forEach(l => {
+      shuffle(state.players.filter(p => p.level === l)).forEach(p => {
+        const livres = times.filter(t => t.length < per);
+        if (!livres.length) { sobra.push(p); return; }
+        livres.sort((a, b) => qtd(a, l) - qtd(b, l) || total(a) - total(b) || a.length - b.length || Math.random() - .5);
+        livres[0].push(p);
+      });
+    });
+    lastDraw = times.map(t => shuffle(t).map(p => p.name)); // ordem embaralhada: não entrega quem é forte
+
+    const grid = document.createElement("div");
+    grid.className = "dteams";
+    times.forEach((t, k) => {
+      const box = document.createElement("div");
+      box.className = "dteam";
+      box.style.setProperty("--c", TEAM_COLORS[k]);
+      const h = document.createElement("h4");
+      h.textContent = (state.teams[k] ? state.teams[k].name : "Time " + (k + 1));
+      const ol = document.createElement("ol");
+      lastDraw[k].forEach((name, i) => {
+        const li = document.createElement("li");
+        li.textContent = name;
+        li.style.animationDelay = (k * per + i) * 50 + "ms";
+        ol.append(li);
+      });
+      const bal = document.createElement("div");
+      bal.className = "dbal";
+      bal.textContent = `${qtd(t, 3)} forte · ${qtd(t, 2)} médio · ${qtd(t, 1)} inic.`;
+      box.append(h, ol, bal);
+      grid.append(box);
+    });
+    res.append(grid);
+    if (sobra.length) {
+      const l = document.createElement("div");
+      l.className = "dleft";
+      l.textContent = "Próxima rodada: " + sobra.map(p => p.name).join(", ");
+      res.append(l);
+    }
+    const use = document.createElement("button");
+    use.className = "duse";
+    use.textContent = "▶ Usar no placar";
+    use.addEventListener("click", usarNoPlacar);
+    const again = document.createElement("button");
+    again.className = "dagain";
+    again.textContent = "🔀 Sortear de novo";
+    again.addEventListener("click", sortearTimes);
+    res.append(use, again);
+  }
+
+  // leva os times sorteados para o placar (começa um jogo novo)
+  function usarNoPlacar() {
+    if (!lastDraw) return;
+    snapshot();
+    const novos = lastDraw.map((players, k) => {
+      const antigo = state.teams[k];
+      const id = antigo ? antigo.id : state.nextId++;
+      return { id, name: antigo ? antigo.name : "Time " + id, sets: 0, players };
+    });
+    state.teams = novos;
+    state.court = [novos[0].id, novos[1].id];
+    state.queue = novos.slice(2).map(t => t.id);
+    state.points = [0, 0];
+    state.games = 0;
+    closeDraw();
+    render();
+  }
+
+  function setOrg(on) {
+    orgMode = on;
+    drawBg.classList.toggle("org", on);
+    document.getElementById("drawNormal").hidden = on;
+    document.getElementById("drawOrg").hidden = !on;
+    document.getElementById("btnOpt").textContent = on ? "✕ Fechar" : "⋯ Opções";
+  }
+  function openDraw() { setOrg(false); renderDraw(); drawBg.classList.add("show"); }
+  function closeDraw() {
+    if (document.activeElement) document.activeElement.blur();
+    setOrg(false);
+    drawBg.classList.remove("show");
+  }
+
+  document.getElementById("btnDraw").addEventListener("click", openDraw);
+  document.getElementById("btnDrawClose").addEventListener("click", closeDraw);
+  document.getElementById("btnOpt").addEventListener("click", () => setOrg(!orgMode));
+  document.getElementById("dAdd").addEventListener("click", addPlayer);
+  document.getElementById("dName").addEventListener("keydown", e => { if (e.key === "Enter") addPlayer(); });
+  document.getElementById("dGo").addEventListener("click", sortearTimes);
+  document.getElementById("perMinus").addEventListener("click", () => {
+    if (state.perTeam > 1) { state.perTeam--; save(); renderDraw(); }
+  });
+  document.getElementById("perPlus").addEventListener("click", () => {
+    if (state.perTeam < 9) { state.perTeam++; save(); renderDraw(); }
+  });
+
   // ===== Ranking em tela cheia =====
   const rankBg = document.getElementById("rankBg");
   function rankingOrdenado() {
@@ -634,6 +923,7 @@
       card.style.setProperty("--color", colorOf(t.id));
       const input = card.querySelector(".team-name");
       if (document.activeElement !== input) input.value = t.name;
+      card.querySelector(".roster").textContent = (t.players || []).join(" · ");
     });
 
     // pódio: os 3 com mais sets
