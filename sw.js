@@ -1,6 +1,6 @@
 // Service worker: guarda os arquivos do app para ele abrir sem internet.
 // Quando mudar algum arquivo do app, troque a versão abaixo (v1 -> v2...)
-const CACHE = "placar-volei-v7";
+const CACHE = "placar-volei-v9";
 const FILES = [
   "./",
   "./index.html",

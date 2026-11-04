@@ -58,7 +58,8 @@
   button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 
   /* Barra de cima */
-  .top-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .top-bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+  .top-bar .gear { justify-self: end; }
   .info { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; flex: 1; }
   .chip {
     display: flex; align-items: center; gap: 6px; max-width: 100%;
@@ -118,7 +119,7 @@
   .team-head { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
   .team-name {
     background: transparent; border: 2px dashed transparent; color: var(--text);
-    font-family: inherit; font-weight: 700; font-size: 1.2rem; text-align: center;
+    font-family: inherit; font-weight: 700; font-size: 1.45rem; text-align: center;
     width: 100%; min-width: 0; padding: 4px 6px; border-radius: 8px; user-select: text; -webkit-user-select: text;
   }
   .team-name:focus { outline: none; border-color: var(--color); background: var(--panel-2); }
@@ -200,6 +201,52 @@
   .btn.danger { color: var(--danger); }
   .btn.primary { background: var(--gold); color: #10151f; }
 
+  /* Pódio clicável */
+  .podium { cursor: pointer; }
+  .podium:active { transform: scale(.97); }
+  .podium .ver { text-align: center; font-size: .7rem; color: var(--muted); }
+
+  /* Ranking em tela cheia */
+  .rank-bg {
+    position: fixed; inset: 0; z-index: 8; display: none; flex-direction: column;
+    background: radial-gradient(circle at 50% 35%, #2b2a4a 0%, #0d1321 65%);
+    padding: calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right))
+             calc(10px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+    overflow: hidden;
+  }
+  .rank-bg.show { display: flex; animation: fade .25s; }
+  .rank-head { display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1; }
+  .rank-head h2 { font-family: "Bebas Neue", sans-serif; font-weight: 400; font-size: 2rem; letter-spacing: 2px; color: var(--gold); }
+  .stage {
+    flex: 1; min-height: 0; display: flex; align-items: flex-end; justify-content: center; gap: 14px;
+    position: relative; z-index: 1;
+  }
+  .step { width: min(28%, 220px); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .step .medal { font-size: 2.2rem; line-height: 1; }
+  .step .nome { font-weight: 700; text-align: center; font-size: 1rem; line-height: 1.15;
+    max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .step .qtd { color: var(--gold); font-weight: 700; font-size: .9rem; }
+  .step .bloco {
+    width: 100%; border-radius: 14px 14px 0 0; display: grid; place-items: center;
+    background: var(--c); color: #10151f; font-family: "Bebas Neue", sans-serif; font-size: 3rem;
+    animation: sobe .6s cubic-bezier(.2,.9,.3,1.2) both;
+  }
+  .step.p1 .bloco { height: 42vh; animation-delay: .35s; }
+  .step.p2 .bloco { height: 30vh; animation-delay: .15s; }
+  .step.p3 .bloco { height: 21vh; animation-delay: 0s; }
+  .step.p1 .medal { font-size: 3.2rem; filter: drop-shadow(0 0 14px rgba(255,209,102,.8)); animation: brilho 1.6s ease-in-out infinite; }
+  .step.p1 .nome { font-size: 1.2rem; color: var(--gold); }
+  @keyframes sobe { from { transform: scaleY(0); transform-origin: bottom; } to { transform: scaleY(1); transform-origin: bottom; } }
+  @keyframes brilho { 50% { transform: scale(1.12) rotate(-6deg); } }
+  .rank-rest { display: flex; justify-content: center; gap: 8px; margin-top: 8px; position: relative; z-index: 1; }
+  .rank-rest .tag { font-size: .8rem; padding: 4px 10px; }
+  .confetes { position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: .7; }
+  .confetes i {
+    position: absolute; top: -10px; width: 8px; height: 12px; border-radius: 2px; opacity: .9;
+    animation: cai linear infinite;
+  }
+  @keyframes cai { to { transform: translateY(110vh) rotate(540deg); } }
+
   /* Aviso de fim de set */
   .overlay {
     position: fixed; inset: 0; background: rgba(5,8,15,.82); display: none;
@@ -232,7 +279,7 @@
     .court { gap: 8px; }
     .team-card { padding: 8px 10px; gap: 4px; border-top-width: 9px; }
     .team-head { flex-direction: row; justify-content: center; gap: 8px; }
-    .team-name { font-size: 1.05rem; padding: 2px 6px; }
+    .team-name { font-size: 1.4rem; padding: 2px 6px; }
     .chip { padding: 2px 10px; font-size: .8rem; }
     .points { font-size: clamp(3.5rem, 30vh, 8rem); }
     .controls button { height: 56px; font-size: 2.2rem; }
@@ -252,7 +299,7 @@
 <body>
 <div class="app">
   <div class="top-bar">
-    <div class="info" id="info"></div>
+    <div></div>
     <div class="timer-box">
       <div class="timer parado" id="timer">00:00</div>
       <button class="play" id="btnPlay" aria-label="Iniciar cronômetro">▶</button>
@@ -274,6 +321,7 @@
     <div class="podium">
       <h4>Pódio</h4>
       <div id="podiumList" style="display:flex;flex-direction:column;gap:6px"></div>
+      <div class="ver">toque para ver o ranking</div>
     </div>
     <div class="team-card b" data-side="1">
       <div class="team-head">
@@ -319,6 +367,17 @@
 
     <button class="btn danger" id="btnResetAll">Recomeçar tudo (zera pontos e sets)</button>
   </div>
+</div>
+
+<!-- Ranking (abre ao tocar no pódio) -->
+<div class="rank-bg" id="rankBg">
+  <div class="confetes" aria-hidden="true"></div>
+  <div class="rank-head">
+    <h2>🏆 Ranking</h2>
+    <button class="close" id="btnRankClose" aria-label="Fechar">✕</button>
+  </div>
+  <div class="stage" id="stage"></div>
+  <div class="rank-rest" id="rankRest"></div>
 </div>
 
 <!-- Aviso de fim de set -->
@@ -422,11 +481,8 @@
       // perdedor vai pro fim da fila, o primeiro da fila entra no lugar dele
       state.queue.push(loser.id);
       incoming = team(state.queue.shift());
-      state.court = [winner.id, incoming.id];
-    } else {
-      state.court = [winner.id, loser.id];
+      state.court[loserSide] = incoming.id; // quem entra fica no lugar do perdedor
     }
-    // vencedor sempre do lado esquerdo
     state.points = [0, 0];
 
     showOverlay(winner, loser, incoming, finalScore, winnerSide);
@@ -494,6 +550,64 @@
   }
   function hideOverlay() { overlay.classList.remove("show"); }
 
+  // ===== Ranking em tela cheia =====
+  const rankBg = document.getElementById("rankBg");
+  function rankingOrdenado() {
+    return [...state.court, ...state.queue].map(team).sort((a, b) => b.sets - a.sets);
+  }
+  function openRanking() {
+    const lista = rankingOrdenado();
+    const stage = document.getElementById("stage");
+    stage.innerHTML = "";
+    // ordem na tela: 2º, 1º, 3º (pódio clássico)
+    const medalhas = ["🏆", "🥈", "🥉"];
+    [1, 0, 2].forEach(i => {
+      const t = lista[i];
+      if (!t) return;
+      const step = document.createElement("div");
+      step.className = "step p" + (i + 1);
+      step.style.setProperty("--c", colorOf(t.id));
+      const medal = document.createElement("div");
+      medal.className = "medal";
+      medal.textContent = medalhas[i];
+      const nome = document.createElement("div");
+      nome.className = "nome";
+      nome.textContent = t.name;
+      const qtd = document.createElement("div");
+      qtd.className = "qtd";
+      qtd.textContent = setsLabel(t.sets);
+      const bloco = document.createElement("div");
+      bloco.className = "bloco";
+      bloco.textContent = (i + 1) + "º";
+      step.append(medal, nome, qtd, bloco);
+      stage.append(step);
+    });
+    const rest = document.getElementById("rankRest");
+    rest.innerHTML = "";
+    lista.slice(3).forEach((t, i) => {
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = `${i + 4}º ${t.name} · ${setsLabel(t.sets)}`;
+      rest.append(tag);
+    });
+    // confetes
+    const conf = rankBg.querySelector(".confetes");
+    conf.innerHTML = "";
+    const cores = [...TEAM_COLORS, "#ffd166"];
+    for (let k = 0; k < 40; k++) {
+      const c = document.createElement("i");
+      c.style.left = Math.random() * 100 + "%";
+      c.style.background = cores[k % cores.length];
+      c.style.animationDuration = 2.5 + Math.random() * 3 + "s";
+      c.style.animationDelay = -Math.random() * 5 + "s";
+      conf.append(c);
+    }
+    rankBg.classList.add("show");
+  }
+  function closeRanking() { rankBg.classList.remove("show"); }
+  document.querySelector(".podium").addEventListener("click", openRanking);
+  document.getElementById("btnRankClose").addEventListener("click", closeRanking);
+
   // ===== Configurações =====
   const sheetBg = document.getElementById("sheetBg");
   function openSettings() { renderTexts(); sheetBg.classList.add("show"); }
@@ -520,24 +634,6 @@
       card.style.setProperty("--color", colorOf(t.id));
       const input = card.querySelector(".team-name");
       if (document.activeElement !== input) input.value = t.name;
-    });
-
-    // sets de todos os times na barra de cima
-    const info = document.getElementById("info");
-    info.innerHTML = "";
-    const ordem = [...state.court, ...state.queue].map(team);
-    ordem.forEach(t => {
-      const side = state.court.indexOf(t.id);
-      const chip = document.createElement("div");
-      chip.className = "chip" + (side !== -1 ? " playing" : "");
-      if (side !== -1) chip.style.borderColor = colorOf(t.id);
-      const name = document.createElement("span");
-      name.className = "chip-name";
-      name.textContent = t.name;
-      const sets = document.createElement("strong");
-      sets.textContent = t.sets;
-      chip.append(name, sets);
-      info.append(chip);
     });
 
     // pódio: os 3 com mais sets
