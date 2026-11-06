@@ -588,8 +588,25 @@
       state.court[loserSide] = incoming.id; // quem entra fica no lugar do perdedor
     }
     state.points = [0, 0];
+    const reforcados = reforcar(loser);
 
-    showOverlay(winner, loser, incoming, finalScore, winnerSide);
+    showOverlay(winner, loser, incoming, finalScore, winnerSide, reforcados);
+  }
+
+  // Time incompleto em quadra: completa com fortes do time que acabou de perder.
+  // Quem perdeu vai descansar, então esse jogador nunca fica nos dois lados ao mesmo tempo.
+  function reforcar(loser) {
+    const nivel = nome => (state.players.find(p => p.name === nome) || { level: 0 }).level;
+    const mudou = [];
+    state.teams.forEach(t => {
+      if (!t.faltam) return;
+      if (!state.court.includes(t.id)) { t.reforco = []; return; } // fora da quadra: devolve o reforço
+      t.reforco = shuffle(loser.players || [])
+        .sort((a, b) => nivel(b) - nivel(a))
+        .slice(0, t.faltam);
+      if (t.reforco.length) mudou.push(t);
+    });
+    return mudou;
   }
 
   function setTeamCount(n) {
@@ -629,7 +646,7 @@
 
   // ===== Aviso de fim de set =====
   const overlay = document.getElementById("overlay");
-  function showOverlay(winner, loser, incoming, score, winnerSide) {
+  function showOverlay(winner, loser, incoming, score, winnerSide, reforcados = []) {
     closeSettings();
     document.getElementById("winTitle").textContent = winner.name + " venceu o set!";
     const s = winnerSide === 0 ? score : [score[1], score[0]];
@@ -640,6 +657,8 @@
     if (incoming) {
       swap.append(line("⬅️ Sai: ", loser.name, ` (${setsLabel(loser.sets)})`));
       swap.append(line("➡️ Entra: ", incoming.name, ` (${setsLabel(incoming.sets)})`));
+      reforcados.forEach(t =>
+        swap.append(line("↺ Completa o " + t.name + ": ", t.reforco.join(", "), ` (do ${loser.name})`)));
     } else {
       swap.append(line("", "Os mesmos dois", " jogam de novo."));
     }
@@ -662,6 +681,7 @@
   const NIVEIS = ["Iniciante", "Médio", "Forte"];
   let orgMode = false;
   let lastDraw = null;
+  let lastFaltam = 0;
 
   const shuffle = arr => {
     const a = [...arr];
@@ -766,13 +786,11 @@
         livres[0].push(p);
       });
     });
-    // time incompleto: completa com fortes sorteados dos outros times (eles jogam de novo)
+    // time incompleto: quem completa é escolhido só na hora que ele entrar em quadra,
+    // sempre do time que acabou de perder (que vai descansar) — ver reforcar()
     const faltam = per - times[n - 1].length;
-    const repetem = faltam > 0
-      ? shuffle(times.slice(0, n - 1).flat()).sort((a, b) => b.level - a.level).slice(0, faltam)
-      : [];
+    lastFaltam = faltam;
     lastDraw = times.map(t => shuffle(t).map(p => p.name)); // ordem embaralhada: não entrega quem é forte
-    repetem.forEach(p => lastDraw[n - 1].push(p.name + " ↺"));
 
     const grid = document.createElement("div");
     grid.className = "dteams";
@@ -791,9 +809,8 @@
       });
       const bal = document.createElement("div");
       bal.className = "dbal";
-      const todosDoTime = k === n - 1 ? [...t, ...repetem] : t;
-      bal.textContent = `${qtd(todosDoTime, 3)} forte · ${qtd(todosDoTime, 2)} médio · ${qtd(todosDoTime, 1)} inic.`
-        + (k === n - 1 && repetem.length ? ` · ${repetem.length} repete ↺` : "");
+      bal.textContent = `${qtd(t, 3)} forte · ${qtd(t, 2)} médio · ${qtd(t, 1)} inic.`
+        + (k === n - 1 && faltam > 0 ? ` · +${faltam} forte de quem perder ↺` : "");
       box.append(h, ol, bal);
       grid.append(box);
     });
@@ -822,7 +839,8 @@
     const novos = lastDraw.map((players, k) => {
       const antigo = state.teams[k];
       const id = antigo ? antigo.id : state.nextId++;
-      return { id, name: antigo ? antigo.name : "Time " + id, sets: 0, players };
+      const faltam = k === lastDraw.length - 1 ? lastFaltam : 0;
+      return { id, name: antigo ? antigo.name : "Time " + id, sets: 0, players, faltam, reforco: [] };
     });
     state.teams = novos;
     state.court = [novos[0].id, novos[1].id];
@@ -944,7 +962,8 @@
       card.style.setProperty("--color", colorOf(t.id));
       const input = card.querySelector(".team-name");
       if (document.activeElement !== input) input.value = t.name;
-      card.querySelector(".roster").textContent = (t.players || []).join(" · ");
+      card.querySelector(".roster").textContent =
+        [...(t.players || []), ...(t.reforco || []).map(n => n + " ↺")].join(" · ");
     });
 
     // pódio: os 3 com mais sets
@@ -1054,7 +1073,7 @@
     snapshot();
     const ids = state.teams.map(t => t.id);
     state = {
-      teams: state.teams.map(t => ({ ...t, sets: 0 })),
+      teams: state.teams.map(t => ({ ...t, sets: 0, reforco: [] })),
       nextId: state.nextId,
       court: [ids[0], ids[1]],
       points: [0, 0],
