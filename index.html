@@ -729,31 +729,50 @@
     input.focus();
   }
 
-  // distribui por nível em rodadas: fortes, depois médios, depois iniciantes
+  // 1) conta quantos times dá pra montar, contando o time incompleto se tiver pelo menos metade (ex.: 14 jogadores, 5 por time = 3 times: 5, 5 e 4)
+  // 2) se passar do limite de times, quem fica de fora é sorteado ao acaso (não sobra só iniciante)
+  // 3) distribui por nível em rodadas: fortes, depois médios, depois iniciantes
   function sortearTimes() {
     const per = state.perTeam;
-    const n = Math.min(MAX_TEAMS, Math.floor(state.players.length / per));
+    const completos = Math.floor(state.players.length / per);
+    const resto = state.players.length % per;
+    // time incompleto só vale se tiver pelo menos metade dos jogadores (senão vai pra próxima rodada)
+    const n = Math.min(MAX_TEAMS, completos + (resto >= Math.ceil(per / 2) ? 1 : 0));
     const res = document.getElementById("dRes");
     res.innerHTML = "";
-    if (n < 2) {
+    if (state.players.length < per * 2) {
       res.innerHTML = '<div class="dempty"></div>';
       res.firstChild.textContent = "Precisa de pelo menos " + per * 2 + " jogadores.";
       lastDraw = null;
       return;
     }
     const times = Array.from({ length: n }, () => []);
-    const sobra = [];
-    const total = t => t.reduce((s, p) => s + p.level, 0);
+    const vagas = n * per;
+    // um forte "líder" garantido por time; o resto é sorteado (quem sobra vai pra próxima rodada)
+    const fortes = shuffle(state.players.filter(p => p.level === 3));
+    const lideres = fortes.slice(0, n);
+    const outros = shuffle(state.players.filter(p => !lideres.includes(p)));
+    const jogam = [...lideres, ...outros.slice(0, vagas - lideres.length)];
+    const sobra = outros.slice(vagas - lideres.length);
+    // vagas de cada time: todos completos, só o último pode ficar com menos
+    const cap = times.map((t, k) => k < n - 1 ? per : jogam.length - per * (n - 1));
+    // o time incompleto já conta com o forte que vai repetir (3 pontos por vaga faltando)
+    const total = t => t.reduce((s, p) => s + p.level, 0) + (t === times[n - 1] ? 3 * (per - cap[n - 1]) : 0);
     const qtd = (t, l) => t.filter(p => p.level === l).length;
     [3, 2, 1].forEach(l => {
-      shuffle(state.players.filter(p => p.level === l)).forEach(p => {
-        const livres = times.filter(t => t.length < per);
-        if (!livres.length) { sobra.push(p); return; }
+      jogam.filter(p => p.level === l).forEach(p => {
+        const livres = times.filter((t, k) => t.length < cap[k]);
         livres.sort((a, b) => qtd(a, l) - qtd(b, l) || total(a) - total(b) || a.length - b.length || Math.random() - .5);
         livres[0].push(p);
       });
     });
+    // time incompleto: completa com fortes sorteados dos outros times (eles jogam de novo)
+    const faltam = per - times[n - 1].length;
+    const repetem = faltam > 0
+      ? shuffle(times.slice(0, n - 1).flat()).sort((a, b) => b.level - a.level).slice(0, faltam)
+      : [];
     lastDraw = times.map(t => shuffle(t).map(p => p.name)); // ordem embaralhada: não entrega quem é forte
+    repetem.forEach(p => lastDraw[n - 1].push(p.name + " ↺"));
 
     const grid = document.createElement("div");
     grid.className = "dteams";
@@ -772,7 +791,9 @@
       });
       const bal = document.createElement("div");
       bal.className = "dbal";
-      bal.textContent = `${qtd(t, 3)} forte · ${qtd(t, 2)} médio · ${qtd(t, 1)} inic.`;
+      const todosDoTime = k === n - 1 ? [...t, ...repetem] : t;
+      bal.textContent = `${qtd(todosDoTime, 3)} forte · ${qtd(todosDoTime, 2)} médio · ${qtd(todosDoTime, 1)} inic.`
+        + (k === n - 1 && repetem.length ? ` · ${repetem.length} repete ↺` : "");
       box.append(h, ol, bal);
       grid.append(box);
     });
