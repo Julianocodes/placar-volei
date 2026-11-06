@@ -211,7 +211,8 @@
   /* Jogadores do time no card */
   .roster {
     font-size: .8rem; color: var(--muted); text-align: center; width: 100%;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-height: 1em;
+    line-height: 1.3; min-height: 1em; overflow-wrap: anywhere;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   }
 
   /* Tela de sorteio */
@@ -226,7 +227,7 @@
   .draw-head h2 { font-size: 1.1rem; color: var(--gold); }
   .draw-actions { display: flex; gap: 8px; }
   .opt { background: var(--panel); color: var(--muted); border-radius: 999px; padding: 0 14px; height: 38px; font-weight: 600; }
-  .draw-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 10px; }
+  .draw-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 10px; }
   .dpanel { background: var(--panel); border-radius: 14px; padding: 10px; overflow-y: auto; overscroll-behavior: contain; }
   .dlb { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); margin-bottom: 8px; }
   .dadd { display: flex; gap: 6px; margin-bottom: 8px; }
@@ -239,7 +240,7 @@
   .dlist { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
   .dp { display: flex; align-items: center; gap: 6px; background: var(--panel-2); border-radius: 10px; padding: 8px 6px 8px 10px; font-size: .9rem; min-width: 0; }
   .dp .n { color: var(--muted); font-size: .75rem; min-width: 16px; }
-  .dp .nm, .dl .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dp .nm, .dl .nm { flex: 1; min-width: 0; overflow-wrap: anywhere; line-height: 1.2; }
   .dp .x { background: transparent; color: var(--muted); width: 26px; height: 26px; border-radius: 8px; font-size: 1.1rem; }
   .dlvl { display: flex; flex-direction: column; gap: 6px; }
   .dl { display: flex; align-items: center; gap: 8px; background: var(--panel-2); border-radius: 10px; padding: 5px 6px 5px 12px; font-size: .95rem; }
@@ -252,10 +253,11 @@
   .dgo { width: 100%; background: var(--b); color: #04342c; border-radius: 12px; padding: 12px 0; font-weight: 700; font-size: 1rem; }
   .dgo:active, .dadd button:active { transform: scale(.97); }
   .dempty { color: var(--muted); font-size: .85rem; text-align: center; padding: 18px 4px; }
-  .dteams { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px; margin-top: 10px; }
+  .dteams { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
   .dteam { background: var(--panel-2); border-radius: 10px; border-top: 5px solid var(--c); padding: 7px 8px; }
   .dteam h4 { font-size: .85rem; color: var(--c); margin-bottom: 4px; }
-  .dteam ol { padding-left: 18px; font-size: .85rem; line-height: 1.6; }
+  .dteam ol { padding-left: 18px; font-size: .85rem; line-height: 1.35; }
+  .dteam li { margin-bottom: 3px; overflow-wrap: anywhere; }
   .dteam li { animation: entra .35s both; }
   @keyframes entra { from { opacity: 0; transform: translateY(6px); } }
   .dbal { display: none; font-size: .7rem; color: var(--gold); margin-top: 4px; }
@@ -601,9 +603,14 @@
     state.teams.forEach(t => {
       if (!t.faltam) return;
       if (!state.court.includes(t.id)) { t.reforco = []; return; } // fora da quadra: devolve o reforço
-      t.reforco = shuffle(loser.players || [])
-        .sort((a, b) => nivel(b) - nivel(a))
-        .slice(0, t.faltam);
+      // pega os melhores de quem perdeu, mas nunca deixa o time com 2 fortes
+      let temForte = (t.players || []).some(nome => nivel(nome) === 3);
+      t.reforco = [];
+      shuffle(loser.players || []).sort((a, b) => nivel(b) - nivel(a)).forEach(nome => {
+        if (t.reforco.length >= t.faltam) return;
+        if (nivel(nome) === 3) { if (temForte) return; temForte = true; }
+        t.reforco.push(nome);
+      });
       if (t.reforco.length) mudou.push(t);
     });
     return mudou;
@@ -749,35 +756,37 @@
     input.focus();
   }
 
-  // 1) conta quantos times dá pra montar, contando o time incompleto se tiver pelo menos metade (ex.: 14 jogadores, 5 por time = 3 times: 5, 5 e 4)
-  // 2) se passar do limite de times, quem fica de fora é sorteado ao acaso (não sobra só iniciante)
-  // 3) distribui por nível em rodadas: fortes, depois médios, depois iniciantes
+  // 1) cada time tem no máximo 1 forte (o "líder"); forte a mais espera a próxima rodada
+  // 2) conta quantos times dá pra montar, contando o time incompleto se tiver pelo menos metade (ex.: 14 jogadores, 5 por time = 3 times: 5, 5 e 4)
+  // 3) se passar do limite de times, quem fica de fora é sorteado ao acaso (não sobra só iniciante)
+  // 4) distribui: fortes, depois médios, depois iniciantes
   function sortearTimes() {
     const per = state.perTeam;
-    const completos = Math.floor(state.players.length / per);
-    const resto = state.players.length % per;
-    // time incompleto só vale se tiver pelo menos metade dos jogadores (senão vai pra próxima rodada)
-    const n = Math.min(MAX_TEAMS, completos + (resto >= Math.ceil(per / 2) ? 1 : 0));
+    // time incompleto só vale se tiver pelo menos metade dos jogadores
+    const quantosTimes = qtdJog => Math.min(MAX_TEAMS,
+      Math.floor(qtdJog / per) + (qtdJog % per >= Math.ceil(per / 2) ? 1 : 0));
+    const fortes = shuffle(state.players.filter(p => p.level === 3));
+    const naoFortes = shuffle(state.players.filter(p => p.level !== 3));
+    // só pode jogar 1 forte por time: no máximo n fortes
+    let n = quantosTimes(state.players.length);
+    n = quantosTimes(Math.min(fortes.length, n) + naoFortes.length);
     const res = document.getElementById("dRes");
     res.innerHTML = "";
-    if (state.players.length < per * 2) {
+    if (n < 2) {
       res.innerHTML = '<div class="dempty"></div>';
-      res.firstChild.textContent = "Precisa de pelo menos " + per * 2 + " jogadores.";
+      res.firstChild.textContent = "Precisa de pelo menos " + per * 2 + " jogadores (no máximo 1 forte por time).";
       lastDraw = null;
       return;
     }
     const times = Array.from({ length: n }, () => []);
     const vagas = n * per;
-    // um forte "líder" garantido por time; o resto é sorteado (quem sobra vai pra próxima rodada)
-    const fortes = shuffle(state.players.filter(p => p.level === 3));
     const lideres = fortes.slice(0, n);
-    const outros = shuffle(state.players.filter(p => !lideres.includes(p)));
-    const jogam = [...lideres, ...outros.slice(0, vagas - lideres.length)];
-    const sobra = outros.slice(vagas - lideres.length);
+    const jogam = [...lideres, ...naoFortes.slice(0, vagas - lideres.length)];
+    const sobra = shuffle([...fortes.slice(n), ...naoFortes.slice(vagas - lideres.length)]);
     // vagas de cada time: todos completos, só o último pode ficar com menos
     const cap = times.map((t, k) => k < n - 1 ? per : jogam.length - per * (n - 1));
-    // o time incompleto já conta com o forte que vai repetir (3 pontos por vaga faltando)
-    const total = t => t.reduce((s, p) => s + p.level, 0) + (t === times[n - 1] ? 3 * (per - cap[n - 1]) : 0);
+    // o time incompleto já conta com o reforço que vai entrar (um médio vale 2)
+    const total = t => t.reduce((s, p) => s + p.level, 0) + (t === times[n - 1] ? 2 * (per - cap[n - 1]) : 0);
     const qtd = (t, l) => t.filter(p => p.level === l).length;
     [3, 2, 1].forEach(l => {
       jogam.filter(p => p.level === l).forEach(p => {
@@ -794,6 +803,7 @@
 
     const grid = document.createElement("div");
     grid.className = "dteams";
+    grid.style.setProperty("--n", n);
     times.forEach((t, k) => {
       const box = document.createElement("div");
       box.className = "dteam";
@@ -810,7 +820,7 @@
       const bal = document.createElement("div");
       bal.className = "dbal";
       bal.textContent = `${qtd(t, 3)} forte · ${qtd(t, 2)} médio · ${qtd(t, 1)} inic.`
-        + (k === n - 1 && faltam > 0 ? ` · +${faltam} forte de quem perder ↺` : "");
+        + (k === n - 1 && faltam > 0 ? ` · +${faltam} de quem perder ↺` : "");
       box.append(h, ol, bal);
       grid.append(box);
     });
@@ -1073,6 +1083,7 @@
     snapshot();
     const ids = state.teams.map(t => t.id);
     state = {
+      ...state, // mantém o resto (lista de jogadores do sorteio, jogadores por time...)
       teams: state.teams.map(t => ({ ...t, sets: 0, reforco: [] })),
       nextId: state.nextId,
       court: [ids[0], ids[1]],
@@ -1131,6 +1142,15 @@
   document.addEventListener("click", lockLandscape, { once: true });
 
   // ===== PWA: funciona offline depois de instalado =====
+  // ===== Tela cheia: usa também a faixa de baixo (barra de navegação do Android) =====
+  // o navegador só deixa entrar em tela cheia depois de um toque, então tenta a cada toque
+  document.addEventListener("pointerup", () => {
+    const instalado = matchMedia("(display-mode: standalone), (display-mode: fullscreen)").matches;
+    if (instalado && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
+    }
+  });
+
   if ("serviceWorker" in navigator && location.protocol === "https:") {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }

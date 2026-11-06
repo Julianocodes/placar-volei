@@ -4,7 +4,7 @@
   "description": "Placar de vôlei no esquema quem ganha fica",
   "start_url": "./",
   "scope": "./",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#0d1321",
   "theme_color": "#0d1321",
